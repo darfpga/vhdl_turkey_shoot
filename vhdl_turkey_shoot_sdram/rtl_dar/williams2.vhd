@@ -462,9 +462,9 @@ cpu_irq  <= pia_io1_irqa or pia_io1_irqb or pia_io2_irqa or pia_io2_irqb;
 -- chip select/we
 we_bus  <= '1' when (cpu_rw_n = '0' or blit_rw_n = '0') and en_pixel = '1' and en_cpu = '1' else '0';
 
-vram_cs <= '1' when color_cs = '0' and 
-						( (blit_has_bus = '0' and  addr_bus < x"C000") or
-						  (blit_has_bus = '1' and (addr_bus < x"9000" or addr_bus >= x"C000" or dma_inh_n = '0'))) else '0';
+vram_cs <= '1' when color_cs = '0' and  addr_bus < x"C000" and 
+						( (blit_has_bus = '0' ) or
+						  (blit_has_bus = '1' and (addr_bus < x"9000" or dma_inh_n = '0'))) else '0';
 
 color_cs         <= '1' when addr_bus(15 downto 12) = X"8" and page(1 downto 0) = "11" else '0'; -- 8000-8FFF & page 3
 rom_bank_cs      <= '1' when addr_bus(15) = '0' and (page /= "000" and page /= "111")  else '0'; -- 0000-7000
@@ -476,8 +476,8 @@ fg_color_bank_cs <= '1' when addr_bus(15 downto  5) = X"CB"&"000" else '0'; -- C
 bg_color_bank_cs <= '1' when addr_bus(15 downto  5) = X"CB"&"001" else '0'; -- CB20-CB3F
 xscroll_low_cs   <= '1' when addr_bus(15 downto  5) = X"CB"&"010" else '0'; -- CB40-CB5F
 xscroll_high_cs  <= '1' when addr_bus(15 downto  5) = X"CB"&"011" else '0'; -- CB60-CB7F
-flip_cs          <= '1' when cpu_addr(15 downto  5) = X"CB"&"100" else '0'; -- CB80-CB9F
-dma_inh_cs       <= '1' when cpu_addr(15 downto  5) = X"CB"&"101" else '0'; -- CBA0-CBBF
+flip_cs          <= '1' when addr_bus(15 downto  5) = X"CB"&"100" else '0'; -- CB80-CB9F
+dma_inh_cs       <= '1' when addr_bus(15 downto  5) = X"CB"&"101" else '0'; -- CBA0-CBBF
 pia_io2_cs       <= '1' when addr_bus(15 downto  7) = X"C9"&"1" and addr_bus(3 downto 2) = "00" else '0'; -- C980-C983
 pia_io1_cs       <= '1' when addr_bus(15 downto  7) = X"C9"&"1" and addr_bus(3 downto 2) = "01" else '0'; -- C984-C987
 
@@ -496,11 +496,11 @@ vram_h1_we  <= '1' when vram_we = '1' and blit_wr_inh_h = '0' and decod_do(7 dow
 vram_h2_we  <= '1' when vram_we = '1' and blit_wr_inh_h = '0' and decod_do(7 downto 6)  = "10" else '0';
 
 -- mux banked rom address to external (d)ram
-rom_addr <= "00"&addr_bus(14 downto 0) when (page = "010"                ) else
-				"01"&addr_bus(14 downto 0) when (page = "110"                ) else
-				"10"&addr_bus(14 downto 0) when (page = "001" or page = "011") else
-				"11"&addr_bus(14 downto 0) when (page = "100" or page = "101") else
-				"00"&addr_bus(14 downto 0);
+rom_addr <= "00"&addr_bus(14 downto 0) when (page = "010"                ) else -- bank a
+				"01"&addr_bus(14 downto 0) when (page = "110"                ) else -- bank b
+				"10"&addr_bus(14 downto 0) when (page = "001" or page = "011") else -- bank c
+				"11"&addr_bus(14 downto 0) when (page = "100" or page = "101") else -- bank d
+				"00"&addr_bus(14 downto 0);                                         -- bank a
 
 -- mux data bus between cpu/blitter/roms/io/vram
 data_bus_high <=
@@ -961,7 +961,7 @@ generic map( dWidth => 4, aWidth => 10)
 port map(
  clk  => clock_12,
  we   => cmos_we,
- addr => cpu_addr(9 downto 0),
+ addr => addr_bus(9 downto 0),
  d    => data_bus(3 downto 0),
  q    => cmos_do
 );
