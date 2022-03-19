@@ -216,6 +216,8 @@ architecture struct of williams2 is
  signal bg_pixels_6 : std_logic_vector( 3 downto 0);
  signal bg_pixels_7 : std_logic_vector( 3 downto 0);
  signal bg_pixels_8 : std_logic_vector( 3 downto 0);
+ signal bg_pixels_9 : std_logic_vector( 3 downto 0);
+ signal bg_pixels_10: std_logic_vector( 3 downto 0);
  signal bg_pixels_shifted : std_logic_vector(3 downto 0);
  
  signal hsync0,hsync1,hsync2,csync,hblank,vblank : std_logic;
@@ -318,7 +320,7 @@ begin
 		
 			if (pixel_cnt = "101") and (en_pixel = '1' ) then
 				hcnt <= hcnt + '1';
-				if hcnt = "111111" then
+				if hcnt = "111101" then
 					if vcnt = '1'&X"FF" then
 						vcnt <= '0'&X"FC";
 					else
@@ -344,7 +346,7 @@ vram_addr <=
 	vcnt(7 downto 0) & hcnt;	
 
 -- mux bus addr and video scanner to map ram addr
-map_x <= (("000" & (hcnt(5 downto 0)+1)) + ('0' & xscroll(10 downto 3))) xor (xscroll(11) & x"00") ;
+map_x <= (("000" & (hcnt(5 downto 0)+2)) + ('0' & xscroll(10 downto 3))) xor (xscroll(11) & x"00") ;
 map_addr <=
 	addr_bus(3 downto 0) & addr_bus(10 downto 4) when video_access = '0' else 
 	vcnt(7 downto 4) & map_x(8 downto 2);
@@ -367,6 +369,8 @@ begin
 			bg_pixels_6 <= bg_pixels_5;
 			bg_pixels_7 <= bg_pixels_6;
 			bg_pixels_8 <= bg_pixels_7;
+			bg_pixels_9 <= bg_pixels_8;
+			bg_pixels_10<= bg_pixels_9;
 			
 			if flip = '0' then 
 				fg_pixels_0 <= fg_pixels(23 downto 20);
@@ -380,14 +384,14 @@ end process;
 
 with xscroll(2 downto 0) select
 bg_pixels_shifted <= 
-	bg_pixels_0 when "000",
-	bg_pixels_1 when "001",
-	bg_pixels_2 when "010",
-	bg_pixels_3 when "011",
-	bg_pixels_4 when "100",
+	bg_pixels_10 when "000",
+	bg_pixels_9  when "001",
+	bg_pixels_8  when "010",
+	bg_pixels_7  when "011",
+	bg_pixels_6  when "100",
 	bg_pixels_5 when "101",
-	bg_pixels_6 when "110",
-	bg_pixels_7 when others;
+	bg_pixels_4  when "110",
+	bg_pixels_3  when others;
 	
 --	mux bus addr and pixels data to palette addr
 palette_addr <=
@@ -452,7 +456,7 @@ pia_io1_pb_i <= btn_start_2 & btn_start_1 & "1111" & btn_gobble & btn_grenade;
 pia_io2_pa_i <= sw_coktail_table & "000" & btn_coin & btn_high_score_reset & btn_advance & btn_auto_up; 
 
 -- video syncs to pia
-vcnt_240  <= '0' when vcnt = '1'&X"F0" else '1';
+vcnt_240  <= '1' when vcnt = '1'&X"F0" else '0';
 cnt_4ms   <= vcnt(5);
 cnt_4ms_o <= vcnt(5);
 
